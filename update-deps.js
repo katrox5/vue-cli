@@ -20,15 +20,9 @@ async function processDependencies(dependencies) {
   const result = {}
 
   for (const [pkg, currentVersion] of Object.entries(dependencies)) {
-    if (currentVersion && currentVersion !== '') {
-      result[pkg] = currentVersion
-      console.log(`✓ ${pkg}: ${currentVersion} (skip)`)
-      continue
-    }
-
-    const version = await getLatestVersion(pkg)
-    result[pkg] = `^${version}`
-    console.log(`✓ ${pkg}: ^${version}`)
+    const version = `^${await getLatestVersion(pkg)}`
+    result[pkg] = version
+    console.log(`✓ ${pkg}: ${version}`, version === currentVersion ? '(skip)' : '')
   }
 
   return result
@@ -45,7 +39,11 @@ async function main() {
       packageJson.dependencies = await processDependencies(packageJson.dependencies)
     }
     if (packageJson.devDependencies) {
-      packageJson.devDependencies = await processDependencies(packageJson.devDependencies)
+      const { vite, ...rest } = packageJson.devDependencies
+      packageJson.devDependencies = {
+        ...(await processDependencies(rest)),
+        vite,
+      }
     }
 
     await writeFileAsync('package.json', JSON.stringify(packageJson, null, 2))
